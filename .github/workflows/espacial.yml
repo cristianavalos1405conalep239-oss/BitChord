@@ -1,0 +1,36 @@
+name: Espacial build
+on:
+  push:
+    branches: [main]
+    paths:
+      - espacial-patch.zip
+      - .github/workflows/espacial.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Aplicar parche
+        run: |
+          unzip -q espacial-patch.zip -d espacial_patch
+          python3 espacial_patch/apply.py
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - name: Compilar
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleDevDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: espacial-bitchord-apk
+          path: app/build/outputs/apk/dev/debug/*.apk
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: espacial-${{ github.run_number }}
+          files: app/build/outputs/apk/dev/debug/*.apk
